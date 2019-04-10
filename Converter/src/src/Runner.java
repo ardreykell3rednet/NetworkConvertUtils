@@ -38,12 +38,7 @@ public class Runner {
 	int seriesCount;
 	String tiff;
 	String csv;
-	long time = 0;
 	
-	public static void main(String[] args) throws IOException, FormatException {
-		Runner run = new Runner();
-		run.writeCSVs();
-	}
 
 	public Runner(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, int fieldSize, int incr) {
 		ND2_LOCATION = nd2Loc;
@@ -191,12 +186,11 @@ public class Runner {
 								csvStream.pad();
 							byte[] nd2Bytes = byteRead.openBytes(slice, x, y, FIELD_SIZE, FIELD_SIZE);
 
-							time = System.currentTimeMillis();
 							csvStream.println(nd2Bytes);
-							time = System.currentTimeMillis() - time;
 						}
 					}
 					csvStream.println("IMAGE_END");
+				
 					if (TESTING_MODE) return;
 				}
 				csvStream.println("SERIES_END");
