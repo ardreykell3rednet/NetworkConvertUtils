@@ -38,16 +38,19 @@ public class Runner {
 	int seriesCount;
 	String tiff;
 	String csv;
-	
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, int fieldSize, int incr) {
+
+	public Runner(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, int fieldSize, int incr) throws FileNotFoundException {
 		ND2_LOCATION = nd2Loc;
 		ROI_LOCATION = roiLoc;
 		ARCHIVE_TIFFS = archive;
 		MAX_ROI = maxRoi;
 		FIELD_SIZE = fieldSize;
 		INCREMENT = incr;
-
+		if (!new File(ND2_LOCATION).exists())
+			throw new FileNotFoundException("The file at " + ND2_LOCATION + " was not found");
+		if (!new File(ROI_LOCATION).exists())
+			throw new FileNotFoundException("The file at " + ROI_LOCATION + " was not found");
 		int i = 1;
 		File runDir;
 		do {
@@ -66,48 +69,52 @@ public class Runner {
 	}
 
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi) {
+	public Runner(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, archive, maxRoi, 64, 8);
 	}
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc, boolean archive) {
+	public Runner(String nd2Loc, String roiLoc, String outLoc, boolean archive) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, archive, 10);
 	}
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc, int maxRoi) {
+	public Runner(String nd2Loc, String roiLoc, String outLoc, int maxRoi) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, false, maxRoi);
 	}
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc) {
+	public Runner(String nd2Loc, String roiLoc, String outLoc) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, false);
 	}
 
-	private Runner(String outLoc, boolean archive) {
+	private Runner(String outLoc, boolean archive) throws FileNotFoundException {
 		this("C:\\Neural Net Data\\P5 Syk\\ND2s", "C:\\Neural Net Data\\P5 Syk\\VectorROIs", outLoc, archive);
 	}
 
-	private Runner(String outLoc) {
+	private Runner(String outLoc) throws FileNotFoundException {
 		this(outLoc, false);
 	}
 
-	private Runner(boolean archive) {
+	private Runner(boolean archive) throws FileNotFoundException {
 		this("C:\\Neural Net Data\\FINAL", archive);
 	}
 
-	private Runner() {
+	private Runner() throws FileNotFoundException {
 		this(false);
 	}
 
-
-	// TODO CORRELATE ND2s with ROIs to prevent MIXUP, fix mixup
 	public void writeCSVs() throws IOException, FormatException {
+		writeCSVs(0, 0, 0);
+	}
+	// TODO CORRELATE ND2s with ROIs to prevent MIXUP, fix mixup
+	public void writeCSVs(int startFile, int startSeries, int startSlice) throws IOException, FormatException {
+
 		File nd2Folder = new File(ND2_LOCATION);
 		File[] nd2List = nd2Folder.listFiles();
 		File roiFolder = new File(ROI_LOCATION);
 		File[] roiList = roiFolder.listFiles();
 		if (nd2List.length == 0 || roiList.length == 0)
 			throw new FileNotFoundException();
-		for (int fileIndex = 0; fileIndex < nd2List.length; fileIndex++) {
+		for (int fileIndex = startFile; fileIndex < nd2List.length; fileIndex++) {
+			startFile = 0;
 			File nd2 = nd2List[fileIndex];
 			File roi = roiList[fileIndex];
 
@@ -116,7 +123,8 @@ public class Runner {
 			CSVPrintStream csvStream = new CSVPrintStream(new FileOutputStream(csv + "\\ND2 " + (fileIndex + 1) + ".csv"));
 			int series;
 			do {
-				series = 0;
+				series = startSeries;
+				startSeries = 0;
 				ImageReader byteRead;
 				ImagePlus raw = getImage(series, nd2);
 				ImagePlus img = process(raw);
@@ -138,7 +146,7 @@ public class Runner {
 				csvStream.print(byteRead.getSizeZ());
 				csvStream.println(seriesCount);
 				HyperStackWrapper hsw = new HyperStackWrapper(byteRead.getSizeC(), byteRead.getSizeZ(), seriesCount);
-				for (int slice = 0; slice < byteRead.getImageCount(); slice++) {
+				for (int slice = startSlice; slice < byteRead.getImageCount(); slice++) {
 					System.out.println("ND2: " + fileIndex + " Series: " + (series) + " Image: " + (slice));
 					int[] zct = byteRead.getZCTCoords(slice);
 					if (zct[1] == 0 || zct[1] == 3) continue;
@@ -240,6 +248,94 @@ public class Runner {
 		ContrastAdjuster adj = new ContrastAdjuster();
 		adj.reset(update, update.getProcessor());
 		return update;
+	}
+
+
+	/**
+	 * @return the rOI_LOCATION
+	 */
+	public String getROI_LOCATION() {
+		return ROI_LOCATION;
+	}
+
+
+	/**
+	 * @return the nUM_SECTIONS
+	 */
+	public int getNUM_SECTIONS() {
+		return NUM_SECTIONS;
+	}
+
+
+	/**
+	 * @return the mAX_ROI
+	 */
+	public int getMAX_ROI() {
+		return MAX_ROI;
+	}
+
+
+	/**
+	 * @return the aRCHIVE_TIFFS
+	 */
+	public boolean isARCHIVE_TIFFS() {
+		return ARCHIVE_TIFFS;
+	}
+
+
+	/**
+	 * @return the nD2_LOCATION
+	 */
+	public String getND2_LOCATION() {
+		return ND2_LOCATION;
+	}
+
+
+	/**
+	 * @return the fIELD_SIZE
+	 */
+	public int getFIELD_SIZE() {
+		return FIELD_SIZE;
+	}
+
+
+	/**
+	 * @return the iNCREMENT
+	 */
+	public int getINCREMENT() {
+		return INCREMENT;
+	}
+
+
+	/**
+	 * @return the tESTING_MODE
+	 */
+	public boolean isTESTING_MODE() {
+		return TESTING_MODE;
+	}
+
+
+	/**
+	 * @return the seriesCount
+	 */
+	public int getSeriesCount() {
+		return seriesCount;
+	}
+
+
+	/**
+	 * @return the tiff
+	 */
+	public String getTiff() {
+		return tiff;
+	}
+
+
+	/**
+	 * @return the csv
+	 */
+	public String getCsv() {
+		return csv;
 	}
 }
 /*
