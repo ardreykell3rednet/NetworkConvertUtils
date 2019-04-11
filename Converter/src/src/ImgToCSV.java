@@ -39,7 +39,9 @@ public class ImgToCSV {
 	private String tiff;
 	private String csv;
 
-
+	public String toString() {
+		return "Image: "+ND2_LOCATION+"ROI: "+ROI_LOCATION+"Out Directory: "+csv;
+	}
 	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, int fieldSize, int incr) throws FileNotFoundException {
 		ND2_LOCATION = nd2Loc;
 		ROI_LOCATION = roiLoc;
