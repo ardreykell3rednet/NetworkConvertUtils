@@ -10,11 +10,9 @@ import java.io.PrintStream;
 import java.util.Arrays;
 
 class Tester {
-	public static void main(String[] args) throws FileNotFoundException {
 
-	}
 
-	public static void asd(String[] args) throws Exception {
+	public static void asd(String[] args) {
 
 		ImagePlus img = new Opener().openImage("C:\\Neural Net Data\\FINAL\\Run 8\\Tiffs\\ND2 1\\Tiff 1.tiff");
 		img.setCurrentSlice(5);
@@ -128,7 +126,7 @@ public class Tester {
 					newPos[i]=(short)(pos[i]-1);
 				curRoi.positions=newPos;
 
-				int[] roiIndexes = new int[Runner.MAX_ROI];
+				int[] roiIndexes = new int[ImgToCSV.MAX_ROI];
 				Point[] roiPoints = curRoi.getContainedPoints();
 				csvStream.print(x);
 				csvStream.print(y);
@@ -149,7 +147,7 @@ public class Tester {
 					csvStream.print(p.x);
 					csvStream.print(p.y);
 				}
-				int pad= Runner.MAX_ROI -(numRois*2);
+				int pad= ImgToCSV.MAX_ROI -(numRois*2);
 				for (int i=0;i<pad;i++)
 					csvStream.pad();
 				byte[] nd2Bytes = tiffReader.openBytes(45, x, y, FIELD_SIZE, FIELD_SIZE);

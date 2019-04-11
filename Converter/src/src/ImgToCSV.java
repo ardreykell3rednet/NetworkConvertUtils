@@ -23,22 +23,23 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 // TODO correlate ND2s and ROIs
-public class Runner {
+public class ImgToCSV {
 
-	public final String ROI_LOCATION;
-	public final int NUM_SECTIONS;
-	public final int MAX_ROI;
-	public final boolean ARCHIVE_TIFFS;
-	final String ND2_LOCATION;
-	final int FIELD_SIZE;
-	final int INCREMENT;
-	private final boolean TESTING_MODE = true;
-	int seriesCount;
-	String tiff;
-	String csv;
+	private final String ND2_LOCATION;
+	private final String ROI_LOCATION;
+	private final int NUM_SECTIONS;
+	private final int MAX_ROI;
+	private final boolean ARCHIVE_TIFFS;
+
+	private final int FIELD_SIZE;
+	private final int INCREMENT;
+	private boolean TESTING_MODE = false;
+	private int seriesCount;
+	private String tiff;
+	private String csv;
 
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, int fieldSize, int incr) throws FileNotFoundException {
+	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, int fieldSize, int incr) throws FileNotFoundException {
 		ND2_LOCATION = nd2Loc;
 		ROI_LOCATION = roiLoc;
 		ARCHIVE_TIFFS = archive;
@@ -51,12 +52,15 @@ public class Runner {
 			throw new FileNotFoundException("The file at " + ROI_LOCATION + " was not found");
 		int i = 1;
 		File runDir;
-		do {
-			runDir = new File(outLoc, "Run " + i);
-			i++;
-		} while (runDir.exists());
-		runDir.mkdirs();
-		makePaths(runDir);
+		if (outLoc != null) {
+			do {
+				runDir = new File(outLoc, "Run " + i);
+				i++;
+			} while (runDir.exists());
+			runDir.mkdirs();
+			makePaths(runDir);
+		}
+
 		int numFields = 0;
 		for (int y = 0; y <= (512 - FIELD_SIZE); y += INCREMENT) {
 			for (int x = 0; x <= (512 - FIELD_SIZE); x += INCREMENT) {
@@ -67,35 +71,35 @@ public class Runner {
 	}
 
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi) throws FileNotFoundException {
+	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, archive, maxRoi, 64, 8);
 	}
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc, boolean archive) throws FileNotFoundException {
+	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, archive, 10);
 	}
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc, int maxRoi) throws FileNotFoundException {
+	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, int maxRoi) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, false, maxRoi);
 	}
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc) throws FileNotFoundException {
+	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, false);
 	}
 
-	private Runner(String outLoc, boolean archive) throws FileNotFoundException {
+	private ImgToCSV(String outLoc, boolean archive) throws FileNotFoundException {
 		this("C:\\Neural Net Data\\P5 Syk\\ND2s", "C:\\Neural Net Data\\P5 Syk\\VectorROIs", outLoc, archive);
 	}
 
-	private Runner(String outLoc) throws FileNotFoundException {
+	private ImgToCSV(String outLoc) throws FileNotFoundException {
 		this(outLoc, false);
 	}
 
-	private Runner(boolean archive) throws FileNotFoundException {
+	private ImgToCSV(boolean archive) throws FileNotFoundException {
 		this("C:\\Neural Net Data\\FINAL", archive);
 	}
 
-	private Runner() throws FileNotFoundException {
+	private ImgToCSV() throws FileNotFoundException {
 		this(false);
 	}
 
@@ -104,12 +108,11 @@ public class Runner {
 	}
 	// TODO CORRELATE ND2s with ROIs to prevent MIXUP, fix mixup
 	public void writeCSVs(int startFile, int startSeries, int startSlice) throws IOException, FormatException {
-
 		File nd2Folder = new File(ND2_LOCATION);
 		File[] nd2List = nd2Folder.listFiles();
 		File roiFolder = new File(ROI_LOCATION);
 		File[] roiList = roiFolder.listFiles();
-		if (nd2List.length == 0 || roiList.length == 0)
+		if (roiList == null || nd2List == null || nd2List.length == 0 || roiList.length == 0)
 			throw new FileNotFoundException();
 		for (int fileIndex = startFile; fileIndex < nd2List.length; fileIndex++) {
 			startFile = 0;
@@ -335,7 +338,25 @@ public class Runner {
 	public String getCsv() {
 		return csv;
 	}
+
+	public void setTESTING_MODE(boolean TESTING_MODE) {
+		this.TESTING_MODE = TESTING_MODE;
+	}
+
+	public void setTiff(String tiff) {
+		this.tiff = tiff;
+	}
+
+	public void setCsv(String csv) {
+		this.csv = csv;
+	}
+
+	public void setSeriesCount(int seriesCount) {
+		this.seriesCount = seriesCount;
+	}
 }
+
+
 /*
 
 public static void asdf(String[] args) throws Exception {
@@ -422,7 +443,7 @@ import java.io.FileOutputStream;
 // TODO correlate ND2s and ROIs
 // TODO start from middle of series
 // TODO Use previous TIFFs
-public class Runner {
+public class ImgToCSV {
 	final String ND2_LOCATION;
 	final int FIELD_SIZE;
 	final int INCREMENT;
@@ -435,7 +456,7 @@ public class Runner {
 	private final boolean TEST = true;
 	public final boolean ARCHIVE_TIFFS = false;
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc, int fieldSize, int incr, int maxRoi) {
+	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, int fieldSize, int incr, int maxRoi) {
 		ND2_LOCATION = nd2Loc;
 		ROI_LOCATION = roiLoc;
 		FIELD_SIZE = fieldSize;
@@ -458,16 +479,16 @@ public class Runner {
 		NUM_SECTIONS = numFields;
 	}
 
-	public Runner(String nd2Loc, String roiLoc, String outLoc) {
+	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc) {
 		this(nd2Loc, roiLoc, outLoc, 64, 8, 10);
 	}
 
-	private Runner() {
+	private ImgToCSV() {
 		this("C:\\Neural Net Data\\P5 Syk\\ND2s", "C:\\Neural Net Data\\P5 Syk\\VectorROIs", "C:\\Neural Net Data\\FINAL", 64, 8, 10);
 	}
 
 	public static void main(String[] args) {
-		Runner run = new Runner();
+		ImgToCSV run = new ImgToCSV();
 		try {
 			run.writeCSVs();
 		} catch (Exception e) {
