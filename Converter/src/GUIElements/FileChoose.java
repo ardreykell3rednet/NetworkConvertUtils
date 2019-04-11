@@ -7,19 +7,34 @@ import java.io.File;
 
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class FileChoose implements ActionListener {
 	
 	public File file;
-	FileNameExtensionFilter filter;
+	FileFilter filter;
 	Component comp;
 	public FileChoose(Component comp,String...extensions) {
 		this.comp=comp;
 		if(extensions!=null&&extensions.length>0)
 			filter=new FileNameExtensionFilter("Image Filter", extensions);
-		else
-			filter=null;
+		else if(extensions[0]="dir")
+			filter= new FileFilter() {
+
+			@Override
+			public boolean accept(File f) {
+				return f.isDirectory();
+			}
+
+			@Override
+			public String getDescription() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+			
+		};
+		
 	}
 	@Override
 	public void actionPerformed(ActionEvent e) {
@@ -33,7 +48,8 @@ public class FileChoose implements ActionListener {
         fc.showOpenDialog(comp);
         file = fc.getSelectedFile();
         JButton c=(JButton) e.getSource();
-        c.setText(file.getName());
+        if(file!=null)
+        	c.setText(file.getName());
 	}
 
 }
