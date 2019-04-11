@@ -23,8 +23,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 // TODO correlate ND2s and ROIs
-// TODO start from middle of series
-// TODO Use previous TIFFs
 public class Runner {
 
 	public final String ROI_LOCATION;
