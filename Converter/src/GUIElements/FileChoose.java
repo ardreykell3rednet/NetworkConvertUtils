@@ -19,7 +19,7 @@ public class FileChoose implements ActionListener {
 		this.comp=comp;
 		if(extensions!=null&&extensions.length>0)
 			filter=new FileNameExtensionFilter("Image Filter", extensions);
-		else if(extensions[0]="dir")
+		else if(extensions[0]=="dir")
 			filter= new FileFilter() {
 
 			@Override
@@ -34,6 +34,9 @@ public class FileChoose implements ActionListener {
 			}
 			
 		};
+		else {
+			filter=null;
+		}
 		
 	}
 	@Override

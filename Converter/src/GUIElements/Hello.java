@@ -64,7 +64,7 @@ public class Hello {
 		
 		JLabel lblChooseOutputLocation = new JLabel("Choose Output Location");
 		panel_2.add(lblChooseOutputLocation);
-		FileChoose outDir=new FileChoose(frame);
+		FileChoose outDir=new FileChoose(frame,"dir");
 		JButton outChoose = new JButton("Select a File or Folder...");
 		outChoose.addActionListener(outDir);
 		panel_2.add(outChoose);
