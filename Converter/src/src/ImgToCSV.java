@@ -1,4 +1,5 @@
 package src;
+
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -106,108 +107,131 @@ public class ImgToCSV {
 	public void writeCSVs() throws IOException, FormatException {
 		writeCSVs(0, 0, 0);
 	}
+
+	public void writeCSV() throws IOException, FormatException {
+		writeCSV(0, 0, 0);
+	}
+
+	public void run(int startFile, int startSeries, int startSlice) throws IOException, FormatException {
+
+		File nd2 = new File(ND2_LOCATION);
+		//File[] nd2List = nd2Folder.listFiles();
+		File roi = new File(ROI_LOCATION);
+		//File[] roiList = roiFolder.listFiles();
+
+		if (nd2.isDirectory() && roi.isDirectory() && nd2.listFiles().length == roi.listFiles().length) {
+			writeCSVs(startFile, startSeries, startSlice);
+		} else if (nd2.isFile() && roi.isFile()) {
+			writeCSV(startFile, startSeries, startSlice);
+		}
+	}
+
+	public void run() throws IOException, FormatException {
+		run(0, 0, 0);
+	}
+
 	// TODO CORRELATE ND2s with ROIs to prevent MIXUP, fix mixup
 	public void writeCSVs(int startFile, int startSeries, int startSlice) throws IOException, FormatException {
 		File nd2Folder = new File(ND2_LOCATION);
 		File[] nd2List = nd2Folder.listFiles();
 		File roiFolder = new File(ROI_LOCATION);
 		File[] roiList = roiFolder.listFiles();
-		if (roiList == null || nd2List == null || nd2List.length == 0 || roiList.length == 0)
-			throw new FileNotFoundException();
+
 		for (int fileIndex = startFile; fileIndex < nd2List.length; fileIndex++) {
-			startFile = 0;
 			File nd2 = nd2List[fileIndex];
 			File roi = roiList[fileIndex];
 
-			File csvLoc = new File(csv);
-			csvLoc.mkdirs();
-			CSVPrintStream csvStream = new CSVPrintStream(new FileOutputStream(csv + "\\ND2 " + (fileIndex + 1) + ".csv"));
-			int series;
-			do {
-				series = startSeries;
-				startSeries = 0;
-				ImageReader byteRead;
-				ImagePlus raw = getImage(series, nd2);
-				ImagePlus img = process(raw);
-				ImagePlus hyperstack = HyperStackConverter.toHyperStack(img, 4, 31, 1, "grayscale");
-				if (ARCHIVE_TIFFS) {
-					File tiffLoc = new File(tiff, "ND2 " + (fileIndex + 1));
-					tiffLoc.mkdirs();
-					String tiffPath = tiffLoc.getPath() + "\\Tiff " + (series + 1) + ".tiff";
-					IJ.saveAsTiff(hyperstack, tiffPath);
-					byteRead = new ImageReader();
-					byteRead.setId(tiffPath);
-				} else {
-					byteRead = new ImagePlusWrapper(hyperstack);
-				}
-
-				int sizeX = byteRead.getSizeX();
-				int sizeY = byteRead.getSizeY();
-				csvStream.print(byteRead.getSizeC());
-				csvStream.print(byteRead.getSizeZ());
-				csvStream.println(seriesCount);
-				HyperStackWrapper hsw = new HyperStackWrapper(byteRead.getSizeC(), byteRead.getSizeZ(), seriesCount);
-				for (int slice = startSlice; slice < byteRead.getImageCount(); slice++) {
-					System.out.println("ND2: " + fileIndex + " Series: " + (series) + " Image: " + (slice));
-					int[] zct = byteRead.getZCTCoords(slice);
-					if (zct[1] == 0 || zct[1] == 3) continue;
-					HSD standard = new HSD(zct[1], zct[0], series);
-					csvStream.print(NUM_SECTIONS);
-					csvStream.print(zct[1]);
-					csvStream.print(zct[0]);
-					csvStream.println(series);
-					for (int y = 0; y <= (sizeY - FIELD_SIZE); y += INCREMENT) {
-						for (int x = 0; x <= (sizeX - FIELD_SIZE); x += INCREMENT) {
-							PointRoi noScale = (PointRoi) RoiDecoder.open(roi.getPath());
-							short[] pos = noScale.positions;
-							PointRoi curRoi = (PointRoi) RoiScaler.scale(
-									noScale,
-									0.5, 0.5, false
-							);
-							short[] newPos = new short[pos.length];
-							for (int i = 0; i < pos.length; i++)
-								newPos[i] = (short) (pos[i] - 1);
-							curRoi.positions = newPos;
-
-							int[] roiIndexes = new int[MAX_ROI];
-							Point[] roiPoints = curRoi.getContainedPoints();
-							csvStream.print(x);
-							csvStream.print(y);
-							Rectangle field = new Rectangle(x, y, FIELD_SIZE, FIELD_SIZE);
-							int numRois = 0;
-							for (int roiPos = 0; roiPos < curRoi.getNCoordinates(); roiPos++) {
-								boolean layer = hsw.getHyperStack(curRoi.getPointPosition(roiPos)).equals(standard);
-								boolean loc = field.contains(roiPoints[roiPos]);
-
-								if (layer && loc) {
-									roiIndexes[numRois] = roiPos;
-									numRois++;
-								}
-							}
-							csvStream.print(numRois);
-							for (int currentPoints = 0; currentPoints < numRois; currentPoints++) {
-								Point p = roiPoints[roiIndexes[currentPoints]];
-								csvStream.print(p.x);
-								csvStream.print(p.y);
-							}
-							int pad = MAX_ROI - (numRois * 2);
-							for (int i = 0; i < pad; i++)
-								csvStream.pad();
-							byte[] nd2Bytes = byteRead.openBytes(slice, x, y, FIELD_SIZE, FIELD_SIZE);
-
-							csvStream.println(nd2Bytes);
-						}
-					}
-					csvStream.println("IMAGE_END");
-				
-					if (TESTING_MODE) return;
-				}
-				csvStream.println("SERIES_END");
-				if (TESTING_MODE) break;
-
-				series++;
-			} while (series < seriesCount);
+			writeCSV(fileIndex, startSeries, startSlice);
+			startSeries = 0;
 		}
+	}
+
+	public void writeCSV(int fileNum, int startSeries, int startSlice) throws IOException, FormatException {
+		File csvLoc = new File(csv);
+		csvLoc.mkdirs();
+		CSVPrintStream csvStream = new CSVPrintStream(new FileOutputStream(csv + "\\ND2 " + (fileNum + 1) + ".csv"));
+		int series = startSeries;
+		do {
+			ImageReader byteRead;
+			ImagePlus raw = getImage(series, ND2_LOCATION);
+			ImagePlus img = process(raw);
+			ImagePlus hyperstack = HyperStackConverter.toHyperStack(img, 4, 31, 1, "grayscale");
+			if (ARCHIVE_TIFFS) {
+				File tiffLoc = new File(tiff, "ND2 " + (fileNum + 1));
+				tiffLoc.mkdirs();
+				String tiffPath = tiffLoc.getPath() + "\\Tiff " + (series + 1) + ".tiff";
+				IJ.saveAsTiff(hyperstack, tiffPath);
+				byteRead = new ImageReader();
+				byteRead.setId(tiffPath);
+			} else {
+				byteRead = new ImagePlusWrapper(hyperstack);
+			}
+
+			int sizeX = byteRead.getSizeX();
+			int sizeY = byteRead.getSizeY();
+			csvStream.print(byteRead.getSizeC());
+			csvStream.print(byteRead.getSizeZ());
+			csvStream.println(seriesCount);
+			HyperStackWrapper hsw = new HyperStackWrapper(byteRead.getSizeC(), byteRead.getSizeZ(), seriesCount);
+			for (int slice = startSlice; slice < byteRead.getImageCount(); slice++) {
+				startSlice = 0;
+				System.out.println("ND2: " + fileNum + " Series: " + (series) + " Image: " + (slice));
+				int[] zct = byteRead.getZCTCoords(slice);
+				if (zct[1] == 0 || zct[1] == 3) continue;
+				HSD standard = new HSD(zct[1], zct[0], series);
+				csvStream.print(NUM_SECTIONS);
+				csvStream.print(zct[1]);
+				csvStream.print(zct[0]);
+				csvStream.println(series);
+				for (int y = 0; y <= (sizeY - FIELD_SIZE); y += INCREMENT) {
+					for (int x = 0; x <= (sizeX - FIELD_SIZE); x += INCREMENT) {
+						PointRoi noScale = (PointRoi) RoiDecoder.open(ROI_LOCATION);
+						short[] pos = noScale.positions;
+						PointRoi curRoi = (PointRoi) RoiScaler.scale(
+								noScale,
+								0.5, 0.5, false
+						);
+						short[] newPos = new short[pos.length];
+						for (int i = 0; i < pos.length; i++)
+							newPos[i] = (short) (pos[i] - 1);
+						curRoi.positions = newPos;
+
+						int[] roiIndexes = new int[MAX_ROI];
+						Point[] roiPoints = curRoi.getContainedPoints();
+						csvStream.print(x);
+						csvStream.print(y);
+						Rectangle field = new Rectangle(x, y, FIELD_SIZE, FIELD_SIZE);
+						int numRois = 0;
+						for (int roiPos = 0; roiPos < curRoi.getNCoordinates(); roiPos++) {
+							boolean layer = hsw.getHyperStack(curRoi.getPointPosition(roiPos)).equals(standard);
+							boolean loc = field.contains(roiPoints[roiPos]);
+
+							if (layer && loc) {
+								roiIndexes[numRois] = roiPos;
+								numRois++;
+							}
+						}
+						csvStream.print(numRois);
+						for (int currentPoints = 0; currentPoints < numRois; currentPoints++) {
+							Point p = roiPoints[roiIndexes[currentPoints]];
+							csvStream.print(p.x);
+							csvStream.print(p.y);
+						}
+						int pad = MAX_ROI - (numRois * 2);
+						for (int i = 0; i < pad; i++)
+							csvStream.pad();
+						byte[] nd2Bytes = byteRead.openBytes(slice, x, y, FIELD_SIZE, FIELD_SIZE);
+
+						csvStream.println(nd2Bytes);
+					}
+				}
+				csvStream.println("IMAGE_END");
+
+			}
+			csvStream.println("SERIES_END");
+
+			series++;
+		} while (series < seriesCount);
 	}
 
 	private void makePaths(File baseFolder) {
@@ -222,10 +246,10 @@ public class ImgToCSV {
 		csv = tempCSVs.getAbsolutePath();
 	}
 
-	private ImagePlus getImage(int series, File file) throws IOException, FormatException {
+	private ImagePlus getImage(int series, String file) throws IOException, FormatException {
 		ImporterOptions options = new ImporterOptions();
 		options.setWindowless(true);
-		options.setId(file.getPath());
+		options.setId(file);
 		options.setAutoscale(true);
 		options.setSeriesOn(series, true);
 		ImportProcess process = new ImportProcess(options);
@@ -315,6 +339,9 @@ public class ImgToCSV {
 		return TESTING_MODE;
 	}
 
+	public void setTESTING_MODE(boolean TESTING_MODE) {
+		this.TESTING_MODE = TESTING_MODE;
+	}
 
 	/**
 	 * @return the seriesCount
@@ -323,6 +350,9 @@ public class ImgToCSV {
 		return seriesCount;
 	}
 
+	public void setSeriesCount(int seriesCount) {
+		this.seriesCount = seriesCount;
+	}
 
 	/**
 	 * @return the tiff
@@ -331,6 +361,9 @@ public class ImgToCSV {
 		return tiff;
 	}
 
+	public void setTiff(String tiff) {
+		this.tiff = tiff;
+	}
 
 	/**
 	 * @return the csv
@@ -339,20 +372,8 @@ public class ImgToCSV {
 		return csv;
 	}
 
-	public void setTESTING_MODE(boolean TESTING_MODE) {
-		this.TESTING_MODE = TESTING_MODE;
-	}
-
-	public void setTiff(String tiff) {
-		this.tiff = tiff;
-	}
-
 	public void setCsv(String csv) {
 		this.csv = csv;
-	}
-
-	public void setSeriesCount(int seriesCount) {
-		this.seriesCount = seriesCount;
 	}
 }
 
