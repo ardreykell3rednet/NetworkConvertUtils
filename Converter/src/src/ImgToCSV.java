@@ -22,12 +22,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 // TODO correlate ND2s and ROIs
 public class ImgToCSV {
 
-	private final String ND2_LOCATION;
-	private final String ROI_LOCATION;
+	private final String[] IMG_LOCATION;
+	private final String[] ROI_LOCATION;
 	private final int NUM_SECTIONS;
 	private final int MAX_ROI;
 	private final boolean ARCHIVE_TIFFS;
@@ -40,17 +41,48 @@ public class ImgToCSV {
 	private String tiff;
 	private String csv;
 
-	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, double scalingFactor, int fieldSize, int incr) throws FileNotFoundException {
-		ND2_LOCATION = nd2Loc;
-		ROI_LOCATION = roiLoc;
+	public ImgToCSV(String[] imgLoc, String[] roiLoc, String outLoc, boolean archive, int maxRoi, double scalingFactor, int fieldSize, int incr) throws FileNotFoundException {
+		if (imgLoc == null || roiLoc == null)
+			throw new IllegalArgumentException("Please pass in image and roi files");
+
+		if (imgLoc.length != roiLoc.length)
+			throw new IllegalArgumentException("Number of Image files must be equal to number of ROI files");
+		File img = new File(imgLoc[0]);
+		File roi = new File(roiLoc[0]);
+
+		if (img.isDirectory()) {
+			IMG_LOCATION =
+					Arrays.stream(img.listFiles())
+							.map(File::getAbsolutePath)
+							.distinct()
+							.toArray(String[]::new);
+		} else
+			IMG_LOCATION = imgLoc;
+
+		if (roi.isDirectory()) {
+			ROI_LOCATION =
+					Arrays.stream(roi.listFiles())
+							.map(File::getAbsolutePath)
+							.distinct()
+							.toArray(String[]::new);
+		} else
+			ROI_LOCATION = roiLoc;
+
+
 		ARCHIVE_TIFFS = archive;
 		MAX_ROI = maxRoi;
 		FIELD_SIZE = fieldSize;
 		INCREMENT = incr;
-		if (!new File(ND2_LOCATION).exists())
-			throw new FileNotFoundException("The file at " + ND2_LOCATION + " was not found");
-		if (!new File(ROI_LOCATION).exists())
-			throw new FileNotFoundException("The file at " + ROI_LOCATION + " was not found");
+
+
+		for (String s : IMG_LOCATION)
+			if (!new File(s).exists())
+				throw new FileNotFoundException("The file at " + s + " was not found");
+
+		for (String s : ROI_LOCATION)
+			if (!new File(s).exists())
+				throw new FileNotFoundException("The file at " + s + " was not found");
+
 		int i = 1;
 		File runDir;
 		if (outLoc != null) {
@@ -72,6 +104,9 @@ public class ImgToCSV {
 		SCALING_FACTOR = scalingFactor;
 	}
 
+	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, double scalingFactor, int fieldSize, int incr) throws FileNotFoundException {
+		this(new String[]{nd2Loc}, new String[]{roiLoc}, outLoc, archive, maxRoi, scalingFactor, fieldSize, incr);
+	}
 	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, int scalingFactor) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, archive, maxRoi, scalingFactor, 64, 8);
 	}
@@ -111,11 +146,11 @@ public class ImgToCSV {
 
 	public static void main(String[] args) throws IOException, FormatException {
 		ImgToCSV fs = new ImgToCSV();
-		fs.run(null);
+		fs.writeCSVs();
 	}
 
 	public String toString() {
-		return "Image: " + ND2_LOCATION + "ROI: " + ROI_LOCATION + "Out Directory: " + csv;
+		return "Image: " + IMG_LOCATION + "ROI: " + ROI_LOCATION + "Out Directory: " + csv;
 	}
 
 	public void writeCSVs() throws IOException, FormatException {
@@ -126,9 +161,9 @@ public class ImgToCSV {
 		writeCSV(0, 0, 0, null);
 	}
 
-	public void run(int startFile, int startSeries, int startSlice, boolean... channels) throws IOException, FormatException {
+	/*public void run(int startFile, int startSeries, int startSlice, boolean... channels) throws IOException, FormatException {
 
-		File nd2 = new File(ND2_LOCATION);
+		File nd2 = new File(IMG_LOCATION);
 		//File[] nd2List = nd2Folder.listFiles();
 		File roi = new File(ROI_LOCATION);
 		//File[] roiList = roiFolder.listFiles();
@@ -142,18 +177,15 @@ public class ImgToCSV {
 
 	public void run(boolean... channels) throws IOException, FormatException {
 		run(0, 0, 0, channels);
-	}
+	}*/
 
 	// TODO CORRELATE ND2s with ROIs to prevent MIXUP, fix mixup
 	public void writeCSVs(int startFile, int startSeries, int startSlice, boolean[] channels) throws IOException, FormatException {
-		File nd2Folder = new File(ND2_LOCATION);
-		File[] nd2List = nd2Folder.listFiles();
-		File roiFolder = new File(ROI_LOCATION);
-		File[] roiList = roiFolder.listFiles();
 
-		for (int fileIndex = startFile; fileIndex < nd2List.length; fileIndex++) {
-			File nd2 = nd2List[fileIndex];
-			File roi = roiList[fileIndex];
+
+		for (int fileIndex = startFile; fileIndex < IMG_LOCATION.length; fileIndex++) {
+			File nd2 = new File(IMG_LOCATION[fileIndex]);
+			File roi = new File(ROI_LOCATION[fileIndex]);
 
 			writeCSV(fileIndex, startSeries, startSlice, channels, nd2, roi);
 			startSeries = 0;
@@ -161,7 +193,7 @@ public class ImgToCSV {
 	}
 
 	public void writeCSV(int fileNum, int startSeries, int startSlice, boolean[] channels) throws IOException, FormatException {
-		writeCSV(fileNum, startSeries, startSlice, channels, new File(ND2_LOCATION), new File(ROI_LOCATION));
+		writeCSV(fileNum, startSeries, startSlice, channels, new File(IMG_LOCATION[0]), new File(ROI_LOCATION[0]));
 	}
 
 	public void writeCSV(int fileNum, int startSeries, int startSlice, boolean[] channels, File nd2, File roi) throws IOException, FormatException {
@@ -309,7 +341,7 @@ public class ImgToCSV {
 	/**
 	 * @return the rOI_LOCATION
 	 */
-	public String getROI_LOCATION() {
+	public String[] getROI_LOCATION() {
 		return ROI_LOCATION;
 	}
 
@@ -341,8 +373,8 @@ public class ImgToCSV {
 	/**
 	 * @return the nD2_LOCATION
 	 */
-	public String getND2_LOCATION() {
-		return ND2_LOCATION;
+	public String[] getIMG_LOCATION() {
+		return IMG_LOCATION;
 	}
 
 
@@ -450,10 +482,10 @@ public static void asdf(String[] args) throws Exception {
 			int sizeX = tiffReader.getSizeX();
 			int sizeY = tiffReader.getSizeY();
 			for (int ser = 0; ser < 1; ser++) {
-				for (int img = 0; img < tiffReader.getImageCount(); img++) {
+				for (int IMG_LOCATION = 0; IMG_LOCATION < tiffReader.getImageCount(); IMG_LOCATION++) {
 					for(int y = 0; y<=(sizeY- FIELD_SIZE); y+=INCREMENT) {
 						for(int x = 0; x<=(sizeX- FIELD_SIZE); x+=INCREMENT) {
-							byte[] nd2Bytes=tiffReader.openBytes(img,x,y, FIELD_SIZE, FIELD_SIZE);
+							byte[] nd2Bytes=tiffReader.openBytes(IMG_LOCATION,x,y, FIELD_SIZE, FIELD_SIZE);
 
 							String csvString = getCSVString(nd2Bytes);
 							csvStream.print(csvString+"\n");
@@ -495,7 +527,7 @@ import java.io.FileOutputStream;
 // TODO start from middle of series
 // TODO Use previous TIFFs
 public class ImgToCSV {
-	final String ND2_LOCATION;
+	final String IMG_LOCATION;
 	final int FIELD_SIZE;
 	final int INCREMENT;
 	int seriesCount;
@@ -508,7 +540,7 @@ public class ImgToCSV {
 	public final boolean ARCHIVE_TIFFS = false;
 
 	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, int fieldSize, int incr, int maxRoi) {
-		ND2_LOCATION = nd2Loc;
+		IMG_LOCATION = nd2Loc;
 		ROI_LOCATION = roiLoc;
 		FIELD_SIZE = fieldSize;
 		INCREMENT = incr;
@@ -550,7 +582,7 @@ public class ImgToCSV {
 
 	// TODO CORRELATE ND2s with ROIs to prevent MIXUP, fix mixup
 	public void writeCSVs() throws Exception {
-		File nd2Folder = new File(ND2_LOCATION);
+		File nd2Folder = new File(IMG_LOCATION);
 		File[] nd2List = nd2Folder.listFiles();
 		File roiFolder = new File(ROI_LOCATION);
 		File[] roiList = roiFolder.listFiles();
@@ -570,8 +602,8 @@ public class ImgToCSV {
 				String tiffPath = tiffLoc.getPath() + "\\Tiff " + (series + 1) + ".tiff";
 				ImageReader byteRead;
 				ImagePlus raw = getImage(series, nd2);
-				ImagePlus img = process(raw);
-				ImagePlus hyperstack = HyperStackConverter.toHyperStack(img, 4, 31, 1, "grayscale");
+				ImagePlus IMG_LOCATION = process(raw);
+				ImagePlus hyperstack = HyperStackConverter.toHyperStack(IMG_LOCATION, 4, 31, 1, "grayscale");
 				if(ARCHIVE_TIFFS) {
 						IJ.saveAsTiff(hyperstack, tiffPath);
 						byteRead= new ImageReader();
@@ -674,12 +706,12 @@ public class ImgToCSV {
 		return imagePluses[0];
 	}
 
-	public ImagePlus process(ImagePlus img) {
-		WindowManager.setTempCurrentImage(img);
+	public ImagePlus process(ImagePlus IMG_LOCATION) {
+		WindowManager.setTempCurrentImage(IMG_LOCATION);
 		Converter conv = new Converter();
 		conv.run("8-bit");
 
-		StackProcessor sp = new StackProcessor(img.getStack(), img.getProcessor());
+		StackProcessor sp = new StackProcessor(IMG_LOCATION.getStack(), IMG_LOCATION.getProcessor());
 		ImageStack iStack = sp.resize(512, 512, true);
 		ImagePlus update = new ImagePlus("Updated Image", iStack);
 
@@ -731,10 +763,10 @@ public static void asdf(String[] args) throws Exception {
 			int sizeX = tiffReader.getSizeX();
 			int sizeY = tiffReader.getSizeY();
 			for (int ser = 0; ser < 1; ser++) {
-				for (int img = 0; img < tiffReader.getImageCount(); img++) {
+				for (int IMG_LOCATION = 0; IMG_LOCATION < tiffReader.getImageCount(); IMG_LOCATION++) {
 					for(int y = 0; y<=(sizeY- FIELD_SIZE); y+=INCREMENT) {
 						for(int x = 0; x<=(sizeX- FIELD_SIZE); x+=INCREMENT) {
-							byte[] nd2Bytes=tiffReader.openBytes(img,x,y, FIELD_SIZE, FIELD_SIZE);
+							byte[] nd2Bytes=tiffReader.openBytes(IMG_LOCATION,x,y, FIELD_SIZE, FIELD_SIZE);
 
 							String csvString = getCSVString(nd2Bytes);
 							csvStream.print(csvString+"\n");

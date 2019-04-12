@@ -72,7 +72,7 @@ public class FileSelectorWindow {
 				try {
 					ImgToCSV itc = new ImgToCSV(img.file.getAbsolutePath(), roi.file.getAbsolutePath(), outDir.file.getAbsolutePath());
 					itc.setTESTING_MODE(true);
-					itc.run(channels);
+					itc.writeCSVs(0, 0, 0, channels);
 					Desktop.getDesktop().browseFileDirectory(new File(itc.getCsv()));
 
 				} catch (IOException | FormatException e1) {
@@ -90,7 +90,7 @@ public class FileSelectorWindow {
 				}
 				itc.setTESTING_MODE(true);
 				try {
-					itc.run(channels);
+					itc.writeCSVs();
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
