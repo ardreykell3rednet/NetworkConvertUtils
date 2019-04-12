@@ -1,14 +1,12 @@
 package GUIElements;
 
-import java.awt.Component;
+import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class FileChoose implements ActionListener {
 	
@@ -18,7 +16,7 @@ public class FileChoose implements ActionListener {
 	public FileChoose(Component comp,String...extensions) {
 		this.comp=comp;
 		if(extensions!=null&&extensions.length>0)
-			filter=new FileNameExtensionFilter("Image Filter", extensions);
+			filter = new FileNameExtensionFilter("Image files (.nd2, .tiff, .jpeg, etc.)", extensions);
 		else if(extensions[0]=="dir")
 			filter= new FileFilter() {
 
@@ -54,5 +52,6 @@ public class FileChoose implements ActionListener {
         if(file!=null)
         	c.setText(file.getName());
 	}
+
 
 }

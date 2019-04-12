@@ -36,7 +36,6 @@ public class OutWindow {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		frame.setSize(new Dimension(512, 512));
-		//Add the ubiquitous "Hello World" label.
 
 		frame.getContentPane().add(myJScrollPane);
 

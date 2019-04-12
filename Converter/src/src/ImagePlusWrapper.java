@@ -1,4 +1,6 @@
 package src;
+
+import GUIElements.OutWindow;
 import ij.ImagePlus;
 import loci.formats.FormatException;
 import loci.formats.ImageReader;
@@ -50,8 +52,10 @@ public class ImagePlusWrapper extends ImageReader {
 
 	@Override
 	public int[] getZCTCoords(int index) {
-		image.setCurrentSlice(index);
-		return new int[]{getSizeZ(), getSizeC(), getSizeT()};
+		image.setPosition(index + 1);
+		int[] arr = new int[]{image.getSlice() - 1, image.getChannel() - 1, image.getFrame() - 1};
+		new OutWindow().println(arr);
+		return arr;
 	}
 
 	@Override

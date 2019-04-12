@@ -1,33 +1,27 @@
 package GUIElements;
 
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import java.awt.BorderLayout;
-import javax.swing.JLabel;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-
-import java.awt.event.ActionListener;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.awt.event.ActionEvent;
-import javax.swing.JSplitPane;
-
 import loci.formats.FormatException;
 import src.ImgToCSV;
-import java.awt.Color;
 
-public class Hello {
+import javax.swing.*;
+import java.awt.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
+public class FileSelectorWindow {
+	public FileSelectorWindow(boolean... channels) {
+		EventQueue.invokeLater(() -> openGUI(channels));
+	}
+
 	public static void main(String[] args) {
-		new Hello();
+		new FileSelectorWindow();
 	}
-	public Hello() {
-		openGUI();
-	}
+
 	/**
 	 * @wbp.parser.entryPoint
 	 */
-	public void openGUI() {
+	public void openGUI(boolean[] channels) {
 		JFrame frame=new JFrame();
 		frame.getContentPane().setLayout(null);
 		frame.setSize(512, 300);
@@ -73,28 +67,42 @@ public class Hello {
 		JLabel lblPleaseAssignA = new JLabel("Please assign a file to all the fields");
 		lblPleaseAssignA.setForeground(Color.RED);
 		lblPleaseAssignA.setBounds(145, 223, 171, 14);
-		confirm.addActionListener(new ActionListener() {
-        	public void actionPerformed(ActionEvent e) {
-        		if(img.file!=null&&roi.file!=null&&outDir.file!=null) {
-        			try {
-        				ImgToCSV itc=new ImgToCSV(img.file.getAbsolutePath(), roi.file.getAbsolutePath(), outDir.file.getAbsolutePath());
-        				itc.setTESTING_MODE(true);
-        				System.out.println(itc);
-        				
-        			} catch (IOException e1) {
-        				// TODO Auto-generated catch block
-        				e1.printStackTrace();
-        			}
-        			//nextStep
-        		}
-        		else {
-        			
-        			frame.getContentPane().add(lblPleaseAssignA);
-        		}
-     
-        	}
- 
-        });
+		confirm.addActionListener(e -> {
+			if (img.file != null && roi.file != null && outDir.file != null) {
+				try {
+					ImgToCSV itc = new ImgToCSV(img.file.getAbsolutePath(), roi.file.getAbsolutePath(), outDir.file.getAbsolutePath());
+					itc.setTESTING_MODE(true);
+					itc.run(channels);
+					Desktop.getDesktop().browseFileDirectory(new File(itc.getCsv()));
+
+				} catch (IOException | FormatException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				//nextStep
+			} else {
+				ImgToCSV itc = null;
+				try {
+					itc = new ImgToCSV();
+				} catch (FileNotFoundException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				itc.setTESTING_MODE(true);
+				try {
+					itc.run(channels);
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (FormatException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				frame.getContentPane().add(lblPleaseAssignA);
+				frame.setVisible(true);
+			}
+
+		});
 		confirm.setBounds(170, 166, 113, 46);
 		frame.getContentPane().add(confirm);
 		

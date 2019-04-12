@@ -8,5 +8,6 @@
 	<classpathentry excluding="Converter/src/|Converter/" kind="src" path=""/>
 	<classpathentry kind="src" path="Converter/src"/>
 	<classpathentry kind="lib" path="Converter/lib/bioformats_package.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/api"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

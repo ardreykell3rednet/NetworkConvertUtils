@@ -34,15 +34,13 @@ public class ImgToCSV {
 
 	private final int FIELD_SIZE;
 	private final int INCREMENT;
+	private final double SCALING_FACTOR;
 	private boolean TESTING_MODE = false;
 	private int seriesCount;
 	private String tiff;
 	private String csv;
 
-	public String toString() {
-		return "Image: "+ND2_LOCATION+"ROI: "+ROI_LOCATION+"Out Directory: "+csv;
-	}
-	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, int fieldSize, int incr) throws FileNotFoundException {
+	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, double scalingFactor, int fieldSize, int incr) throws FileNotFoundException {
 		ND2_LOCATION = nd2Loc;
 		ROI_LOCATION = roiLoc;
 		ARCHIVE_TIFFS = archive;
@@ -71,12 +69,17 @@ public class ImgToCSV {
 			}
 		}
 		NUM_SECTIONS = numFields;
+		SCALING_FACTOR = scalingFactor;
 	}
 
+	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, int scalingFactor) throws FileNotFoundException {
+		this(nd2Loc, roiLoc, outLoc, archive, maxRoi, scalingFactor, 64, 8);
+	}
 
 	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi) throws FileNotFoundException {
-		this(nd2Loc, roiLoc, outLoc, archive, maxRoi, 64, 8);
+		this(nd2Loc, roiLoc, outLoc, archive, maxRoi, .5, 64, 8);
 	}
+
 
 	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, archive, 10);
@@ -90,31 +93,40 @@ public class ImgToCSV {
 		this(nd2Loc, roiLoc, outLoc, false);
 	}
 
-	private ImgToCSV(String outLoc, boolean archive) throws FileNotFoundException {
+	ImgToCSV(String outLoc, boolean archive) throws FileNotFoundException {
 		this("C:\\Neural Net Data\\P5 Syk\\ND2s", "C:\\Neural Net Data\\P5 Syk\\VectorROIs", outLoc, archive);
 	}
 
-	private ImgToCSV(String outLoc) throws FileNotFoundException {
+	ImgToCSV(String outLoc) throws FileNotFoundException {
 		this(outLoc, false);
 	}
 
-	private ImgToCSV(boolean archive) throws FileNotFoundException {
+	ImgToCSV(boolean archive) throws FileNotFoundException {
 		this("C:\\Neural Net Data\\FINAL", archive);
 	}
 
-	private ImgToCSV() throws FileNotFoundException {
+	public ImgToCSV() throws FileNotFoundException {
 		this(false);
 	}
 
+	public static void main(String[] args) throws IOException, FormatException {
+		ImgToCSV fs = new ImgToCSV();
+		fs.run(null);
+	}
+
+	public String toString() {
+		return "Image: " + ND2_LOCATION + "ROI: " + ROI_LOCATION + "Out Directory: " + csv;
+	}
+
 	public void writeCSVs() throws IOException, FormatException {
-		writeCSVs(0, 0, 0);
+		writeCSVs(0, 0, 0, null);
 	}
 
 	public void writeCSV() throws IOException, FormatException {
-		writeCSV(0, 0, 0);
+		writeCSV(0, 0, 0, null);
 	}
 
-	public void run(int startFile, int startSeries, int startSlice) throws IOException, FormatException {
+	public void run(int startFile, int startSeries, int startSlice, boolean... channels) throws IOException, FormatException {
 
 		File nd2 = new File(ND2_LOCATION);
 		//File[] nd2List = nd2Folder.listFiles();
@@ -122,18 +134,18 @@ public class ImgToCSV {
 		//File[] roiList = roiFolder.listFiles();
 
 		if (nd2.isDirectory() && roi.isDirectory() && nd2.listFiles().length == roi.listFiles().length) {
-			writeCSVs(startFile, startSeries, startSlice);
+			writeCSVs(startFile, startSeries, startSlice, channels);
 		} else if (nd2.isFile() && roi.isFile()) {
-			writeCSV(startFile, startSeries, startSlice);
+			writeCSV(startFile, startSeries, startSlice, channels);
 		}
 	}
 
-	public void run() throws IOException, FormatException {
-		run(0, 0, 0);
+	public void run(boolean... channels) throws IOException, FormatException {
+		run(0, 0, 0, channels);
 	}
 
 	// TODO CORRELATE ND2s with ROIs to prevent MIXUP, fix mixup
-	public void writeCSVs(int startFile, int startSeries, int startSlice) throws IOException, FormatException {
+	public void writeCSVs(int startFile, int startSeries, int startSlice, boolean[] channels) throws IOException, FormatException {
 		File nd2Folder = new File(ND2_LOCATION);
 		File[] nd2List = nd2Folder.listFiles();
 		File roiFolder = new File(ROI_LOCATION);
@@ -143,30 +155,36 @@ public class ImgToCSV {
 			File nd2 = nd2List[fileIndex];
 			File roi = roiList[fileIndex];
 
-			writeCSV(fileIndex, startSeries, startSlice);
+			writeCSV(fileIndex, startSeries, startSlice, channels, nd2, roi);
 			startSeries = 0;
 		}
 	}
 
-	public void writeCSV(int fileNum, int startSeries, int startSlice) throws IOException, FormatException {
+	public void writeCSV(int fileNum, int startSeries, int startSlice, boolean[] channels) throws IOException, FormatException {
+		writeCSV(fileNum, startSeries, startSlice, channels, new File(ND2_LOCATION), new File(ROI_LOCATION));
+	}
+
+	public void writeCSV(int fileNum, int startSeries, int startSlice, boolean[] channels, File nd2, File roi) throws IOException, FormatException {
 		File csvLoc = new File(csv);
 		csvLoc.mkdirs();
 		CSVPrintStream csvStream = new CSVPrintStream(new FileOutputStream(csv + "\\ND2 " + (fileNum + 1) + ".csv"));
 		int series = startSeries;
 		do {
 			ImageReader byteRead;
-			ImagePlus raw = getImage(series, ND2_LOCATION);
+			ImagePlus raw = getImage(series, nd2.getAbsolutePath());
 			ImagePlus img = process(raw);
-			ImagePlus hyperstack = HyperStackConverter.toHyperStack(img, 4, 31, 1, "grayscale");
+
+			if (channels != null && channels.length != img.getNChannels())
+				throw new IllegalArgumentException("Please pass in a boolean array containing the appropriate number of channels");
 			if (ARCHIVE_TIFFS) {
 				File tiffLoc = new File(tiff, "ND2 " + (fileNum + 1));
 				tiffLoc.mkdirs();
 				String tiffPath = tiffLoc.getPath() + "\\Tiff " + (series + 1) + ".tiff";
-				IJ.saveAsTiff(hyperstack, tiffPath);
+				IJ.saveAsTiff(img, tiffPath);
 				byteRead = new ImageReader();
 				byteRead.setId(tiffPath);
 			} else {
-				byteRead = new ImagePlusWrapper(hyperstack);
+				byteRead = new ImagePlusWrapper(img);
 			}
 
 			int sizeX = byteRead.getSizeX();
@@ -179,7 +197,7 @@ public class ImgToCSV {
 				startSlice = 0;
 				System.out.println("ND2: " + fileNum + " Series: " + (series) + " Image: " + (slice));
 				int[] zct = byteRead.getZCTCoords(slice);
-				if (zct[1] == 0 || zct[1] == 3) continue;
+				if (channels != null && channels[zct[1]]) continue;
 				HSD standard = new HSD(zct[1], zct[0], series);
 				csvStream.print(NUM_SECTIONS);
 				csvStream.print(zct[1]);
@@ -187,11 +205,11 @@ public class ImgToCSV {
 				csvStream.println(series);
 				for (int y = 0; y <= (sizeY - FIELD_SIZE); y += INCREMENT) {
 					for (int x = 0; x <= (sizeX - FIELD_SIZE); x += INCREMENT) {
-						PointRoi noScale = (PointRoi) RoiDecoder.open(ROI_LOCATION);
+						PointRoi noScale = (PointRoi) RoiDecoder.open(roi.getAbsolutePath());
 						short[] pos = noScale.positions;
 						PointRoi curRoi = (PointRoi) RoiScaler.scale(
 								noScale,
-								0.5, 0.5, false
+								SCALING_FACTOR, SCALING_FACTOR, false
 						);
 						short[] newPos = new short[pos.length];
 						for (int i = 0; i < pos.length; i++)
@@ -228,14 +246,15 @@ public class ImgToCSV {
 					}
 				}
 				csvStream.println("IMAGE_END");
-
 			}
+			if (TESTING_MODE) return;
 			csvStream.println("SERIES_END");
 
 			series++;
 		} while (series < seriesCount);
 	}
 
+	//TODO recognize Nd2s in mixed folder
 	private void makePaths(File baseFolder) {
 		if (ARCHIVE_TIFFS) {
 			File tempTiff = new File(baseFolder, "Tiffs");
@@ -260,13 +279,20 @@ public class ImgToCSV {
 		System.out.println(seriesCount);
 		ImagePlusReader reader = new ImagePlusReader(process);
 		ImagePlus[] imagePluses = reader.openImagePlus();
+		System.out.println(imagePluses[0].isHyperStack());
+		System.out.println(imagePluses[0].getNChannels());
 		return imagePluses[0];
+
 	}
 
 	public ImagePlus process(ImagePlus img) {
+		int channel = img.getNChannels();
+		int zslice = img.getNSlices();
+		int tseries = img.getNFrames();
 		WindowManager.setTempCurrentImage(img);
 		Converter conv = new Converter();
 		conv.run("8-bit");
+
 
 		StackProcessor sp = new StackProcessor(img.getStack(), img.getProcessor());
 		ImageStack iStack = sp.resize(512, 512, true);
@@ -274,7 +300,9 @@ public class ImgToCSV {
 
 		ContrastAdjuster adj = new ContrastAdjuster();
 		adj.reset(update, update.getProcessor());
-		return update;
+
+
+		return HyperStackConverter.toHyperStack(update, channel, zslice, tseries, "grayscale");
 	}
 
 
