@@ -1,6 +1,5 @@
 package src;
 
-import GUIElements.OutWindow;
 import ij.ImagePlus;
 import loci.formats.FormatException;
 import loci.formats.ImageReader;
@@ -52,15 +51,15 @@ public class ImagePlusWrapper extends ImageReader {
 
 	@Override
 	public int[] getZCTCoords(int index) {
-		image.setPosition(index + 1);
+		int i = index + 1;
+		image.setPosition(i);
 		int[] arr = new int[]{image.getSlice() - 1, image.getChannel() - 1, image.getFrame() - 1};
-		new OutWindow().println(arr);
 		return arr;
 	}
 
 	@Override
 	public byte[] openBytes(int no, int x, int y, int w, int h) throws FormatException, IOException {
-		image.setCurrentSlice(no);
+		image.setPosition(no + 1);
 		if (w > image.getWidth())
 			throw new IndexOutOfBoundsException("Width of the section cannot be longer than the width of the image");
 		if (h > image.getHeight())

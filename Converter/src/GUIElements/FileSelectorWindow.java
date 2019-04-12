@@ -33,7 +33,7 @@ public class FileSelectorWindow {
 		panel.add(lblChooseImage);
 		
 		JButton imgChoose = new JButton("Select a File or Folder...");
-		FileChoose img=new FileChoose(frame,"nd2","tiff");
+		FileChoose img = new FileChoose(frame, true, "nd2", "tiff");
 		imgChoose.addActionListener(img);
 		
 		
@@ -47,7 +47,7 @@ public class FileSelectorWindow {
 		
 		JLabel lblChooseRoi = new JLabel("Choose ROI:");
 		panel_1.add(lblChooseRoi);
-		FileChoose roi=new FileChoose(frame,"roi");
+		FileChoose roi = new FileChoose(frame, true, "roi");
 		JButton roiChoose = new JButton("Select a File or Folder...");
 		roiChoose.addActionListener(roi);
 		panel_1.add(roiChoose);
@@ -58,7 +58,7 @@ public class FileSelectorWindow {
 		
 		JLabel lblChooseOutputLocation = new JLabel("Choose Output Location");
 		panel_2.add(lblChooseOutputLocation);
-		FileChoose outDir=new FileChoose(frame,"dir");
+		FileChoose outDir = new FileChoose(frame, false, "dir");
 		JButton outChoose = new JButton("Select a File or Folder...");
 		outChoose.addActionListener(outDir);
 		panel_2.add(outChoose);
@@ -70,7 +70,7 @@ public class FileSelectorWindow {
 		confirm.addActionListener(e -> {
 			if (img.file != null && roi.file != null && outDir.file != null) {
 				try {
-					ImgToCSV itc = new ImgToCSV(img.file.getAbsolutePath(), roi.file.getAbsolutePath(), outDir.file.getAbsolutePath());
+					ImgToCSV itc = new ImgToCSV(img.file, roi.file, outDir.file[0]);
 					itc.setTESTING_MODE(true);
 					itc.writeCSVs(0, 0, 0, channels);
 					Desktop.getDesktop().browseFileDirectory(new File(itc.getCsv()));
@@ -90,14 +90,12 @@ public class FileSelectorWindow {
 				}
 				itc.setTESTING_MODE(true);
 				try {
-					itc.writeCSVs();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				} catch (FormatException e1) {
+					itc.writeCSVs(0, 0, 0, channels);
+				} catch (IOException | FormatException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
+
 				frame.getContentPane().add(lblPleaseAssignA);
 				frame.setVisible(true);
 			}

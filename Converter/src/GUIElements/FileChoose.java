@@ -7,17 +7,20 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.util.Arrays;
 
 public class FileChoose implements ActionListener {
-	
-	public File file;
+
+	public File[] file;
 	FileFilter filter;
 	Component comp;
-	public FileChoose(Component comp,String...extensions) {
+
+	public FileChoose(Component comp, boolean multi, String... extensions) {
 		this.comp=comp;
 		if(extensions!=null&&extensions.length>0)
-			filter = new FileNameExtensionFilter("Image files (.nd2, .tiff, .jpeg, etc.)", extensions);
+			filter = new FileNameExtensionFilter(Arrays.toString(extensions), extensions);
 		else if(extensions[0]=="dir")
+
 			filter= new FileFilter() {
 
 			@Override
@@ -28,7 +31,7 @@ public class FileChoose implements ActionListener {
 			@Override
 			public String getDescription() {
 				// TODO Auto-generated method stub
-				return null;
+				return "Select a directory";
 			}
 			
 		};
@@ -43,14 +46,17 @@ public class FileChoose implements ActionListener {
 		JFileChooser fc=new JFileChooser("C:/");
 		if(filter!=null)
 			fc.addChoosableFileFilter(filter);
+		fc.setMultiSelectionEnabled(true);
     	fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         fc.setCurrentDirectory(new File("C:/"));
         fc.setAcceptAllFileFilterUsed(false);
         fc.showOpenDialog(comp);
-        file = fc.getSelectedFile();
+		file = fc.getSelectedFiles();
         JButton c=(JButton) e.getSource();
-        if(file!=null)
-        	c.setText(file.getName());
+		if (file != null) {
+			c.setText(file.length > 1 ? file.length + " files selected" : file[0].getName());
+		}
+
 	}
 
 

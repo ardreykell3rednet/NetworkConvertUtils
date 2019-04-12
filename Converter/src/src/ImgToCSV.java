@@ -45,8 +45,6 @@ public class ImgToCSV {
 		if (imgLoc == null || roiLoc == null)
 			throw new IllegalArgumentException("Please pass in image and roi files");
 
-		if (imgLoc.length != roiLoc.length)
-			throw new IllegalArgumentException("Number of Image files must be equal to number of ROI files");
 		File img = new File(imgLoc[0]);
 		File roi = new File(roiLoc[0]);
 
@@ -104,21 +102,24 @@ public class ImgToCSV {
 		SCALING_FACTOR = scalingFactor;
 	}
 
+	public ImgToCSV(File[] imgLoc, File[] roiLoc, File outDir) throws FileNotFoundException {
+		this(arrConvert(imgLoc), arrConvert(roiLoc), outDir.getAbsolutePath(), false, 10, .5, 64, 8);
+
+	}
 	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, double scalingFactor, int fieldSize, int incr) throws FileNotFoundException {
 		this(new String[]{nd2Loc}, new String[]{roiLoc}, outLoc, archive, maxRoi, scalingFactor, fieldSize, incr);
 	}
 	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi, int scalingFactor) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, archive, maxRoi, scalingFactor, 64, 8);
 	}
-
 	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive, int maxRoi) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, archive, maxRoi, .5, 64, 8);
 	}
 
-
 	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, boolean archive) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, archive, 10);
 	}
+
 
 	public ImgToCSV(String nd2Loc, String roiLoc, String outLoc, int maxRoi) throws FileNotFoundException {
 		this(nd2Loc, roiLoc, outLoc, false, maxRoi);
@@ -144,11 +145,23 @@ public class ImgToCSV {
 		this(false);
 	}
 
-	public static void main(String[] args) throws IOException, FormatException {
-		ImgToCSV fs = new ImgToCSV();
-		fs.writeCSVs();
+	public static String[] arrConvert(File[] files) {
+		return Arrays.stream(files)
+				.map(File::getAbsolutePath)
+				.distinct()
+				.toArray(String[]::new);
 	}
 
+	public static void main(String[] args) throws IOException, FormatException {
+		ImgToCSV img = new ImgToCSV();
+
+		img.TESTING_MODE = true;
+		img.run();
+	}
+
+	public void run() throws IOException, FormatException {
+		writeCSVs();
+	}
 	public String toString() {
 		return "Image: " + IMG_LOCATION + "ROI: " + ROI_LOCATION + "Out Directory: " + csv;
 	}
@@ -180,15 +193,19 @@ public class ImgToCSV {
 	}*/
 
 	// TODO CORRELATE ND2s with ROIs to prevent MIXUP, fix mixup
-	public void writeCSVs(int startFile, int startSeries, int startSlice, boolean[] channels) throws IOException, FormatException {
+	public void writeCSVs(int startFile, int startSeries, int startSlice, boolean... channels) throws IOException, FormatException {
 
-
+		if (IMG_LOCATION.length != ROI_LOCATION.length)
+			throw new IllegalArgumentException("The number of Image files must be equal to the number of ROI files");
 		for (int fileIndex = startFile; fileIndex < IMG_LOCATION.length; fileIndex++) {
 			File nd2 = new File(IMG_LOCATION[fileIndex]);
 			File roi = new File(ROI_LOCATION[fileIndex]);
 
 			writeCSV(fileIndex, startSeries, startSlice, channels, nd2, roi);
 			startSeries = 0;
+
+			if (TESTING_MODE)
+				return;
 		}
 	}
 
@@ -229,55 +246,56 @@ public class ImgToCSV {
 				startSlice = 0;
 				System.out.println("ND2: " + fileNum + " Series: " + (series) + " Image: " + (slice));
 				int[] zct = byteRead.getZCTCoords(slice);
-				if (channels != null && channels[zct[1]]) continue;
-				HSD standard = new HSD(zct[1], zct[0], series);
-				csvStream.print(NUM_SECTIONS);
-				csvStream.print(zct[1]);
-				csvStream.print(zct[0]);
-				csvStream.println(series);
-				for (int y = 0; y <= (sizeY - FIELD_SIZE); y += INCREMENT) {
-					for (int x = 0; x <= (sizeX - FIELD_SIZE); x += INCREMENT) {
-						PointRoi noScale = (PointRoi) RoiDecoder.open(roi.getAbsolutePath());
-						short[] pos = noScale.positions;
-						PointRoi curRoi = (PointRoi) RoiScaler.scale(
-								noScale,
-								SCALING_FACTOR, SCALING_FACTOR, false
-						);
-						short[] newPos = new short[pos.length];
-						for (int i = 0; i < pos.length; i++)
-							newPos[i] = (short) (pos[i] - 1);
-						curRoi.positions = newPos;
+				if (channels == null || channels[zct[1]]) {
+					HSD standard = new HSD(zct[1], zct[0], series);
+					csvStream.print(NUM_SECTIONS);
+					csvStream.print(zct[1]);
+					csvStream.print(zct[0]);
+					csvStream.println(series);
+					for (int y = 0; y <= (sizeY - FIELD_SIZE); y += INCREMENT) {
+						for (int x = 0; x <= (sizeX - FIELD_SIZE); x += INCREMENT) {
+							PointRoi noScale = (PointRoi) RoiDecoder.open(roi.getAbsolutePath());
+							short[] pos = noScale.positions;
+							PointRoi curRoi = (PointRoi) RoiScaler.scale(
+									noScale,
+									SCALING_FACTOR, SCALING_FACTOR, false
+							);
+							short[] newPos = new short[pos.length];
+							for (int i = 0; i < pos.length; i++)
+								newPos[i] = (short) (pos[i] - 1);
+							curRoi.positions = newPos;
 
-						int[] roiIndexes = new int[MAX_ROI];
-						Point[] roiPoints = curRoi.getContainedPoints();
-						csvStream.print(x);
-						csvStream.print(y);
-						Rectangle field = new Rectangle(x, y, FIELD_SIZE, FIELD_SIZE);
-						int numRois = 0;
-						for (int roiPos = 0; roiPos < curRoi.getNCoordinates(); roiPos++) {
-							boolean layer = hsw.getHyperStack(curRoi.getPointPosition(roiPos)).equals(standard);
-							boolean loc = field.contains(roiPoints[roiPos]);
+							int[] roiIndexes = new int[MAX_ROI];
+							Point[] roiPoints = curRoi.getContainedPoints();
+							csvStream.print(x);
+							csvStream.print(y);
+							Rectangle field = new Rectangle(x, y, FIELD_SIZE, FIELD_SIZE);
+							int numRois = 0;
+							for (int roiPos = 0; roiPos < curRoi.getNCoordinates(); roiPos++) {
+								boolean layer = hsw.getHyperStack(curRoi.getPointPosition(roiPos)).equals(standard);
+								boolean loc = field.contains(roiPoints[roiPos]);
 
-							if (layer && loc) {
-								roiIndexes[numRois] = roiPos;
-								numRois++;
+								if (layer && loc) {
+									roiIndexes[numRois] = roiPos;
+									numRois++;
+								}
 							}
-						}
-						csvStream.print(numRois);
-						for (int currentPoints = 0; currentPoints < numRois; currentPoints++) {
-							Point p = roiPoints[roiIndexes[currentPoints]];
-							csvStream.print(p.x);
-							csvStream.print(p.y);
-						}
-						int pad = MAX_ROI - (numRois * 2);
-						for (int i = 0; i < pad; i++)
-							csvStream.pad();
-						byte[] nd2Bytes = byteRead.openBytes(slice, x, y, FIELD_SIZE, FIELD_SIZE);
+							csvStream.print(numRois);
+							for (int currentPoints = 0; currentPoints < numRois; currentPoints++) {
+								Point p = roiPoints[roiIndexes[currentPoints]];
+								csvStream.print(p.x);
+								csvStream.print(p.y);
+							}
+							int pad = MAX_ROI - (numRois * 2);
+							for (int i = 0; i < pad; i++)
+								csvStream.pad();
+							byte[] nd2Bytes = byteRead.openBytes(slice, x, y, FIELD_SIZE, FIELD_SIZE);
 
-						csvStream.println(nd2Bytes);
+							csvStream.println(nd2Bytes);
+						}
 					}
+					csvStream.println("IMAGE_END");
 				}
-				csvStream.println("IMAGE_END");
 			}
 			if (TESTING_MODE) return;
 			csvStream.println("SERIES_END");
