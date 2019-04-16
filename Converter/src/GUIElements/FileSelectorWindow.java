@@ -5,7 +5,6 @@ import src.ImgToCSV;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
@@ -73,13 +72,12 @@ public class FileSelectorWindow {
 					ImgToCSV itc = new ImgToCSV(img.file, roi.file, outDir.file[0]);
 					itc.setTESTING_MODE(true);
 					itc.writeCSVs(0, 0, 0, channels);
-					Desktop.getDesktop().browseFileDirectory(new File(itc.getCsv()));
 
 				} catch (IOException | FormatException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
-				//nextStep
+
 			} else {
 				ImgToCSV itc = null;
 				try {

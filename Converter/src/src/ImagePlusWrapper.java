@@ -14,10 +14,10 @@ public class ImagePlusWrapper extends ImageReader {
 		//he
 	}
 
-	@Override
-	public byte[] openBytes(int index) {
+	public byte[] openBytes1(int index) {
 		return (byte[]) image.getImageStack().getProcessor(index + 1).convertToByteProcessor().getPixelsCopy();
 	}
+	//the problem is toByteProcessor, somehow messes w numbers
 
 	@Override
 	public int getSizeX() {
@@ -57,6 +57,9 @@ public class ImagePlusWrapper extends ImageReader {
 		return arr;
 	}
 
+	public byte[] openBytes2(int no) throws IOException, FormatException {
+		return openBytes(no, 0, 0, image.getWidth(), image.getHeight());
+	}
 	@Override
 	public byte[] openBytes(int no, int x, int y, int w, int h) throws FormatException, IOException {
 		image.setPosition(no + 1);

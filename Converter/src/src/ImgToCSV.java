@@ -50,19 +50,13 @@ public class ImgToCSV {
 
 		if (img.isDirectory()) {
 			IMG_LOCATION =
-					Arrays.stream(img.listFiles())
-							.map(File::getAbsolutePath)
-							.distinct()
-							.toArray(String[]::new);
+					arrConvert(img.listFiles());
 		} else
 			IMG_LOCATION = imgLoc;
 
 		if (roi.isDirectory()) {
 			ROI_LOCATION =
-					Arrays.stream(roi.listFiles())
-							.map(File::getAbsolutePath)
-							.distinct()
-							.toArray(String[]::new);
+					arrConvert(roi.listFiles());
 		} else
 			ROI_LOCATION = roiLoc;
 
@@ -152,11 +146,8 @@ public class ImgToCSV {
 				.toArray(String[]::new);
 	}
 
-	public static void main(String[] args) throws IOException, FormatException {
-		ImgToCSV img = new ImgToCSV();
+	public static void main(String[] args) {
 
-		img.TESTING_MODE = true;
-		img.run();
 	}
 
 	public void run() throws IOException, FormatException {
@@ -193,7 +184,7 @@ public class ImgToCSV {
 	}*/
 
 	// TODO CORRELATE ND2s with ROIs to prevent MIXUP, fix mixup
-	public void writeCSVs(int startFile, int startSeries, int startSlice, boolean... channels) throws IOException, FormatException {
+	public void writeCSVs(int startFile, int startSeries, int startSlice, boolean[] channels) throws IOException, FormatException {
 
 		if (IMG_LOCATION.length != ROI_LOCATION.length)
 			throw new IllegalArgumentException("The number of Image files must be equal to the number of ROI files");
