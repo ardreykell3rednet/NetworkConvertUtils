@@ -20,8 +20,10 @@ import loci.plugins.in.ImporterOptions;
 import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 
 // TODO correlate ND2s and ROIs
@@ -146,7 +148,12 @@ public class ImgToCSV {
 				.toArray(String[]::new);
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException, FormatException {
+		ImgToCSV run = new ImgToCSV(null);
+		run.setCsv("C:\\ImgToCSV v4-16-2019\\Run 1\\CSVs");
+		boolean[] channels = {false, true, true, false};
+
+		run.writeCSVs(5, 2, 0, channels);
 
 	}
 
@@ -154,7 +161,7 @@ public class ImgToCSV {
 		writeCSVs();
 	}
 	public String toString() {
-		return "Image: " + IMG_LOCATION + "ROI: " + ROI_LOCATION + "Out Directory: " + csv;
+		return "Image: " + Arrays.toString(IMG_LOCATION) + "ROI: " + Arrays.toString(ROI_LOCATION) + "Out Directory: " + csv;
 	}
 
 	public void writeCSVs() throws IOException, FormatException {
@@ -207,7 +214,9 @@ public class ImgToCSV {
 	public void writeCSV(int fileNum, int startSeries, int startSlice, boolean[] channels, File nd2, File roi) throws IOException, FormatException {
 		File csvLoc = new File(csv);
 		csvLoc.mkdirs();
-		CSVPrintStream csvStream = new CSVPrintStream(new FileOutputStream(csv + "\\ND2 " + (fileNum + 1) + ".csv"));
+		//csv + "\\ND2 " + (fileNum + 1) + ".csv"
+		Path csvPath = Path.of(csv, "ND2 " + (fileNum + 1) + ".csv");
+		CSVPrintStream csvStream = new CSVPrintStream(Files.newOutputStream(csvPath, StandardOpenOption.CREATE, StandardOpenOption.APPEND));
 		int series = startSeries;
 		do {
 			ImageReader byteRead;
@@ -234,6 +243,7 @@ public class ImgToCSV {
 			csvStream.println(seriesCount);
 			HyperStackWrapper hsw = new HyperStackWrapper(byteRead.getSizeC(), byteRead.getSizeZ(), seriesCount);
 			for (int slice = startSlice; slice < byteRead.getImageCount(); slice++) {
+				long timeIn = System.currentTimeMillis();
 				startSlice = 0;
 				System.out.println("ND2: " + fileNum + " Series: " + (series) + " Image: " + (slice));
 				int[] zct = byteRead.getZCTCoords(slice);
@@ -286,6 +296,7 @@ public class ImgToCSV {
 						}
 					}
 					csvStream.println("IMAGE_END");
+					System.out.println(System.currentTimeMillis() - timeIn);
 				}
 			}
 			if (TESTING_MODE) return;
