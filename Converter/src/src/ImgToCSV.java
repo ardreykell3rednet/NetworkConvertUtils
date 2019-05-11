@@ -331,13 +331,23 @@ public class ImgToCSV {
 		System.out.println(seriesCount);
 		ImagePlusReader reader = new ImagePlusReader(process);
 		ImagePlus[] imagePluses = reader.openImagePlus();
-		System.out.println(imagePluses[0].isHyperStack());
-		System.out.println(imagePluses[0].getNChannels());
 		return imagePluses[0];
-
 	}
 
-	public ImagePlus process(ImagePlus img) {
+	public static ImagePlus imgFromFile(int series, String file) throws IOException, FormatException {
+		ImporterOptions options = new ImporterOptions();
+		options.setWindowless(true);
+		options.setId(file);
+		options.setAutoscale(true);
+		options.setSeriesOn(series, true);
+		ImportProcess process = new ImportProcess(options);
+		process.execute();
+		ImagePlusReader reader = new ImagePlusReader(process);
+		ImagePlus[] imagePluses = reader.openImagePlus();
+		return process(imagePluses[0]);
+	}
+
+	public static ImagePlus process(ImagePlus img) {
 		int channel = img.getNChannels();
 		int zslice = img.getNSlices();
 		int tseries = img.getNFrames();
