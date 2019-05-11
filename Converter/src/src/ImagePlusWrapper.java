@@ -41,7 +41,7 @@ public class ImagePlusWrapper extends ImageReader {
 
 	@Override
 	public int getSizeT() {
-		return image.getFrame();
+		return image.getNFrames();
 	}
 
 	@Override

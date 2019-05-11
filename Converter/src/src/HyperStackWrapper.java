@@ -1,7 +1,7 @@
 package src;
 import loci.formats.in.ND2Reader;
 
-class HyperStackWrapper {
+public class HyperStackWrapper {
 	int cChannels;
 	int zSlices;
 	int tSeries;
@@ -35,10 +35,17 @@ class HyperStackWrapper {
 				}
 			}
 		}
-		System.err.println(i);
 		throw new IndexOutOfBoundsException("Index " + i + " is out of bounds for T Series: " + tSeries + ", Z Slices: " + zSlices + ", and C Channels: " + cChannels);
 
+	}
 
+	public int getStack(int channel, int slice, int series) {
+		int i = 0;
+		for (int t = 0; t <= series; t++)
+			for (int z = 0; z <= slice; z++)
+				for (int c = 0; c <= channel; c++)
+					i++;
+		return i;
 	}
 }
 
